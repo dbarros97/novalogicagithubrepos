@@ -110,7 +110,7 @@
             return {
                 name: repo.name,
                 url: repo.html_url,
-                created_at: new Date(repo.created_at).toLocaleDateString(), // Format creation date
+                created_at: new Date(repo.created_at).toLocaleDateString('PT'), // Format creation date
                 totalDownloads: totalDownloads,
                 uniqueOwners: Array.from(releaseOwners).join(', ') // Convert Set to comma-separated string
             };
