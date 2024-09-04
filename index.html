@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>novalogica Repositories</title>
+    <title>Novalogica Repositories</title>
     <style>
         body {
-            font-family: 'Open Sans', sans-serif; 
+            font-family: 'Open Sans', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #eeeeee; 
+            background-color: #eeeeee;
         }
         .container {
             width: 90%;
@@ -23,13 +23,13 @@
         }
         h1 {
             text-align: center;
-            color: #2b3e51; 
+            color: #2b3e51;
         }
         .refresh-button {
             position: absolute;
             top: 20px;
             right: 20px;
-            background-color: #00a5b5; 
+            background-color: #00a5b5;
             color: white;
             border: none;
             border-radius: 5px;
@@ -38,7 +38,7 @@
             transition: background-color 0.2s;
         }
         .refresh-button:hover {
-            background-color: #007a82; 
+            background-color: #007a82;
         }
         #repos {
             display: grid;
@@ -62,16 +62,16 @@
             font-size: 1.25em;
         }
         .repo-box h3 a {
-            color: #00a5b5; 
+            color: #00a5b5;
             text-decoration: none;
             transition: color 0.2s;
         }
         .repo-box h3 a:hover {
-            color: #007a82; 
+            color: #007a82;
         }
         .repo-box p {
             margin: 5px 0;
-            color: #555555; 
+            color: #555555;
         }
     </style>
 </head>
@@ -79,7 +79,7 @@
 
 <div class="container">
     <button class="refresh-button" onclick="fetchRepositories()">Refresh</button>
-    <h1>novalogica GitHub Repositories</h1>
+    <h1>Novalogica GitHub Repositories</h1>
     <div id="repos"></div>
 </div>
 
@@ -96,19 +96,23 @@
         const repoData = await Promise.all(repos.map(async repo => {
             const releasesResponse = await fetch(`https://api.github.com/repos/${username}/${repo.name}/releases`);
             const releases = await releasesResponse.json();
+
             let totalDownloads = 0;
+            let releaseOwners = new Set(); // Using a Set to ensure unique owners
 
             releases.forEach(release => {
                 release.assets.forEach(asset => {
                     totalDownloads += asset.download_count;
                 });
+                releaseOwners.add(release.author.login); // Add release author to the Set
             });
 
             return {
                 name: repo.name,
                 url: repo.html_url,
-                created_at: new Date(repo.created_at).toLocaleDateString("PT"), // Format creation date
-                totalDownloads: totalDownloads
+                created_at: new Date(repo.created_at).toLocaleDateString(), // Format creation date
+                totalDownloads: totalDownloads,
+                uniqueOwners: Array.from(releaseOwners).join(', ') // Convert Set to comma-separated string
             };
         }));
 
@@ -123,6 +127,7 @@
                 <h3><a href="${repo.url}" target="_blank">${repo.name}</a></h3>
                 <p><strong>Created On:</strong> ${repo.created_at}</p>
                 <p><strong>Total Downloads:</strong> ${repo.totalDownloads}</p>
+                <p><strong>Release Owners:</strong> ${repo.uniqueOwners}</p>
             `;
             reposContainer.appendChild(repoBox);
         });
