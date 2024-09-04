@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>novalogica Repositories</title>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif; 
+            margin: 0;
+            padding: 0;
+            background-color: #eeeeee; 
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            position: relative;
+        }
+        h1 {
+            text-align: center;
+            color: #2b3e51; 
+        }
+        .refresh-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #00a5b5; 
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .refresh-button:hover {
+            background-color: #007a82; 
+        }
+        #repos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .repo-box {
+            border: 1px solid #cccccc;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        .repo-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        .repo-box h3 {
+            margin: 0 0 10px;
+            font-size: 1.25em;
+        }
+        .repo-box h3 a {
+            color: #00a5b5; 
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .repo-box h3 a:hover {
+            color: #007a82; 
+        }
+        .repo-box p {
+            margin: 5px 0;
+            color: #555555; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <button class="refresh-button" onclick="fetchRepositories()">Refresh</button>
+    <h1>novalogica GitHub Repositories</h1>
+    <div id="repos"></div>
+</div>
+
+<script>
+    async function fetchRepositories() {
+        const username = 'novalogica';
+        const reposResponse = await fetch(`https://api.github.com/users/${username}/repos`);
+        const repos = await reposResponse.json();
+        const reposContainer = document.getElementById('repos');
+
+        reposContainer.innerHTML = ''; // Clear container before adding new content
+
+        // Fetch release data and calculate total downloads for each repo
+        const repoData = await Promise.all(repos.map(async repo => {
+            const releasesResponse = await fetch(`https://api.github.com/repos/${username}/${repo.name}/releases`);
+            const releases = await releasesResponse.json();
+            let totalDownloads = 0;
+
+            releases.forEach(release => {
+                release.assets.forEach(asset => {
+                    totalDownloads += asset.download_count;
+                });
+            });
+
+            return {
+                name: repo.name,
+                url: repo.html_url,
+                created_at: new Date(repo.created_at).toLocaleDateString("PT"), // Format creation date
+                totalDownloads: totalDownloads
+            };
+        }));
+
+        // Sort repos by total downloads in descending order
+        repoData.sort((a, b) => b.totalDownloads - a.totalDownloads);
+
+        // Display sorted repos
+        repoData.forEach(repo => {
+            const repoBox = document.createElement('div');
+            repoBox.className = 'repo-box';
+            repoBox.innerHTML = `
+                <h3><a href="${repo.url}" target="_blank">${repo.name}</a></h3>
+                <p><strong>Created On:</strong> ${repo.created_at}</p>
+                <p><strong>Total Downloads:</strong> ${repo.totalDownloads}</p>
+            `;
+            reposContainer.appendChild(repoBox);
+        });
+    }
+
+    // Fetch repositories on initial load
+    fetchRepositories();
+</script>
+
+</body>
+</html>
