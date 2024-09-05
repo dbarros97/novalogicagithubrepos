@@ -6,10 +6,10 @@
     <title>novalogica Repositories</title>
     <style>
         body {
-            font-family: 'Open Sans', sans-serif;
+            font-family: system-ui; 
             margin: 0;
             padding: 0;
-            background-color: #eeeeee;
+            background-color: #eeeeee; 
         }
         .container {
             width: 90%;
@@ -19,31 +19,42 @@
             background-color: #ffffff;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            position: relative;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap; /* Ensures it wraps on smaller screens */
+        }
+        .logo {
+            width: 165px;
+            height: auto;
         }
         h1 {
+            flex: 1;
             text-align: center;
-            color: #2b3e51;
+            color: #429691; 
+            margin: 0;
         }
         .refresh-button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background-color: #00a5b5;
+            background-color: #429691; 
             color: white;
             border: none;
             border-radius: 5px;
             padding: 10px;
             cursor: pointer;
             transition: background-color 0.2s;
+            font-family: system-ui;
         }
+        
         .refresh-button:hover {
-            background-color: #007a82;
+            background-color: #007a82; 
         }
         #repos {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
+            margin-top: 20px;
         }
         .repo-box {
             border: 1px solid #cccccc;
@@ -62,80 +73,114 @@
             font-size: 1.25em;
         }
         .repo-box h3 a {
-            color: #00a5b5;
+            color: #429691; 
             text-decoration: none;
             transition: color 0.2s;
         }
         .repo-box h3 a:hover {
-            color: #007a82;
+            color: #95E8C2; 
         }
         .repo-box p {
             margin: 5px 0;
-            color: #555555;
+            color: #3C3C3C; 
+        }
+        .error-message {
+            text-align: center;
+            color: #e16c6c;
+            font-weight: bold;
+            padding: 20px;
+            background-color: #ffe6e6;
+            border: 1px solid #ffcccc;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        /* Mobile-first responsive design */
+        @media (max-width: 768px) {
+            .header {
+                justify-content: center;
+            }
+            h1 {
+                text-align: center;
+                flex-basis: 100%; /* Title takes up full width on mobile */
+            }
+            .refresh-button {
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <button class="refresh-button" onclick="fetchRepositories()">Refresh</button>
-    <h1>novalogica GitHub Repositories</h1>
-    <div id="repos"></div>
-</div>
+    <div class="container">
+        <div class="header">
+            <img src="https://dbarros97.github.io/novalogicagithubrepos/Logo%20novalogica_horizontal_cor.svg" alt="novalogica Logo" class="logo">
+            <h1>GitHub Repositories</h1>
+            <button class="refresh-button" onclick="fetchRepositories()">Refresh</button>
+        </div>
+        <div id="repos"></div>
+    </div>
 
-<script>
-    async function fetchRepositories() {
-        const username = 'novalogica';
-        const reposResponse = await fetch(`https://api.github.com/users/${username}/repos`);
-        const repos = await reposResponse.json();
-        const reposContainer = document.getElementById('repos');
+    <script>
+        async function fetchRepositories() {
+            const username = 'novalogica';
+            const reposContainer = document.getElementById('repos');
+            reposContainer.innerHTML = ''; // Clear container before adding new content
+    
+            try {
+                // Fetch repository data
+                const reposResponse = await fetch(`https://api.github.com/users/${username}/repos`);
+                
+                const repos = await reposResponse.json();
+                
+                if (!reposResponse.ok) throw new Error(`Failed to fetch repositories: ${repos.message}`);
 
-        reposContainer.innerHTML = ''; // Clear container before adding new content
+                // Fetch release data and calculate total downloads for each repo
+                const repoData = await Promise.all(repos.map(async repo => {
+                    const releasesResponse = await fetch(`https://api.github.com/repos/${username}/${repo.name}/releases`);
 
-        // Fetch release data and calculate total downloads for each repo
-        const repoData = await Promise.all(repos.map(async repo => {
-            const releasesResponse = await fetch(`https://api.github.com/repos/${username}/${repo.name}/releases`);
-            const releases = await releasesResponse.json();
+                    const releases = await releasesResponse.json();
 
-            let totalDownloads = 0;
-            let releaseOwners = new Set(); // Using a Set to ensure unique owners
+                    if (!releasesResponse.ok) throw new Error(`Failed to fetch releases for ${repo.name}: ${releases.message}`);
 
-            releases.forEach(release => {
-                release.assets.forEach(asset => {
-                    totalDownloads += asset.download_count;
+                    let totalDownloads = 0;
+    
+                    releases.forEach(release => {
+                        release.assets.forEach(asset => {
+                            totalDownloads += asset.download_count;
+                        });
+                    });
+    
+                    return {
+                        name: repo.name,
+                        url: repo.html_url,
+                        created_at: new Date(repo.created_at).toLocaleDateString('PT'), // Format creation date
+                        totalDownloads: totalDownloads
+                    };
+                }));
+    
+                // Sort repos by total downloads in descending order
+                repoData.sort((a, b) => b.totalDownloads - a.totalDownloads);
+    
+                // Display sorted repos
+                repoData.forEach(repo => {
+                    const repoBox = document.createElement('div');
+                    repoBox.className = 'repo-box';
+                    repoBox.innerHTML = `
+                        <h3><a href="${repo.url}" target="_blank">${repo.name}</a></h3>
+                        <p><strong>Created On:</strong> ${repo.created_at}</p>
+                        <p><strong>Total Downloads:</strong> ${repo.totalDownloads}</p>
+                    `;
+                    reposContainer.appendChild(repoBox);
                 });
-                releaseOwners.add(release.author.login); // Add release author to the Set
-            });
-
-            return {
-                name: repo.name,
-                url: repo.html_url,
-                created_at: new Date(repo.created_at).toLocaleDateString('PT'), // Format creation date
-                totalDownloads: totalDownloads,
-                uniqueOwners: Array.from(releaseOwners).join(', ') // Convert Set to comma-separated string
-            };
-        }));
-
-        // Sort repos by total downloads in descending order
-        repoData.sort((a, b) => b.totalDownloads - a.totalDownloads);
-
-        // Display sorted repos
-        repoData.forEach(repo => {
-            const repoBox = document.createElement('div');
-            repoBox.className = 'repo-box';
-            repoBox.innerHTML = `
-                <h3><a href="${repo.url}" target="_blank">${repo.name}</a></h3>
-                <p><strong>Created On:</strong> ${repo.created_at}</p>
-                <p><strong>Total Downloads:</strong> ${repo.totalDownloads}</p>
-                <p><strong>Release Owners:</strong> ${repo.uniqueOwners}</p>
-            `;
-            reposContainer.appendChild(repoBox);
-        });
-    }
-
-    // Fetch repositories on initial load
-    fetchRepositories();
-</script>
+            } catch (error) {
+                // Display error message if the API call fails
+                reposContainer.innerHTML = `<div class="error-message">${error.message}</div>`;
+            }
+        }
+    
+        fetchRepositories();
+    </script>
 
 </body>
 </html>
