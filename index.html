@@ -144,18 +144,21 @@
                     if (!releasesResponse.ok) throw new Error(`Failed to fetch releases for ${repo.name}: ${releases.message}`);
 
                     let totalDownloads = 0;
+                    let releaseOwners = new Set(); // Using a Set to ensure unique owners
     
                     releases.forEach(release => {
                         release.assets.forEach(asset => {
                             totalDownloads += asset.download_count;
                         });
+                        releaseOwners.add(release.author.login);
                     });
     
                     return {
                         name: repo.name,
                         url: repo.html_url,
                         created_at: new Date(repo.created_at).toLocaleDateString('PT'), // Format creation date
-                        totalDownloads: totalDownloads
+                        totalDownloads: totalDownloads,
+                        uniqueOwners: Array.from(releaseOwners).join(', ')
                     };
                 }));
     
@@ -170,6 +173,7 @@
                         <h3><a href="${repo.url}" target="_blank">${repo.name}</a></h3>
                         <p><strong>Created On:</strong> ${repo.created_at}</p>
                         <p><strong>Total Downloads:</strong> ${repo.totalDownloads}</p>
+                        <p><strong>Release Owners:</strong> ${repo.uniqueOwners}</p>
                     `;
                     reposContainer.appendChild(repoBox);
                 });
